@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>五子棋</title>
+    <style type="text/css">
+        #board{
+            display:flex;
+            flex-wrap:wrap;
+        }
+        .column{
+            display:flex;
+        }
+        .cell{
+            flex:1;
+            border:solid 1px white;
+            background:lightblue;
+            width:40px;
+            height:40px;
+            line-height:40px;
+            text-align:center;
+            font-size:20px;
+            color:red;
+            font-weight:bold;
+        }
+        .tips{
+            border-color:red;
+        }
+    </style>
+</head>
+<body>
+<div id="board"></div>
+<script>
+    const boardSize = 20;
+    function initBoard(){
+        let boardData = [];
+        for(let i = 0; i < boardSize * boardSize; i++){
+            boardData.push(0);
+        }
+        return boardData;
+    }
+    const boardData = initBoard();
+    let chessNum = 1;
+    function paintBoard(){
+        let board = document.getElementById("board");
+        for(let i = 0; i < boardSize; i++){
+            let columnNode = document.createElement("div");
+            columnNode.classList.add("column");
+            for(let j = 0; j < boardSize; j++){
+                let cellNode = document.createElement("div");
+                cellNode.classList.add("cell");
+                let cellVal = boardData[i * boardSize + j];
+                cellNode.innerText = cellVal == 2 ? "X" :
+                    cellVal == 1 ? "O" : "";
+                cellNode.addEventListener("click", (e) => playChess(e, i, j))
+                columnNode.appendChild(cellNode);
+            }
+            board.append(columnNode);
+        }
+    }
+    function playChess(e, x, y){
+        let ele = e.target;
+        let oldVal = boardData[x * boardSize + y];
+        if(oldVal != 0)
+            return ;
+        boardData[x * boardSize + y] = chessNum;
+        chessNum = 3 - chessNum;
+        ele.innerText = boardData[x * boardSize + y] == 2 ? "X" :
+            boardData[x * boardSize + y] == 1 ? "O" : "";
+        // 判定输赢
+        if(check(boardData, x, y, boardData[x * boardSize + y])){
+            console.log(boardData[x * boardSize + y] == 1 ? "O is winner!" : "X is winner!");
+            return;
+        }
+        // 预估结局
+        console.log(bestChoice(boardData, chessNum));
+        // 预判输赢
+        if(preCheck(boardData, chessNum)){
+            console.log(chessNum == 1 ? "O will win!" : "X will win!");
+        }
+        // computerPlay();
+    }
+    function computerPlay(){
+        let choice = bestChoice(boardData, chessNum);
+        if(choice.point){
+            boardData[choice.point[0] * boardSize + choice.point[1]] = chessNum;
+            document.getElementById("board").childNodes[choice.point[0]].childNodes[choice.point[1]].innerText = chessNum == 2 ? "X" :
+                chessNum ? "O" : "";
+            if(check(boardData, choice.point[0], choice.point[1], chessNum)){
+                console.log(chessNum == 1 ? "O is winner!" : "X is winner!")
+            }
+            chessNum = 3 - chessNum;
+        }
+    }
+    function check(boardData, x, y, chessNum){
+        // 验证横行
+        let win = false;
+        let rowEnd = 0;
+        for(let i = 1; i <= boardSize - y + 1; i++){
+            if(y + i > boardSize - 1 || boardData[x * boardSize + y + i] == 0 || boardData[x * boardSize + y + i] != chessNum){
+                rowEnd = y + i - 1;
+                break;
+            }
+        }
+        let rowStart = 0;
+        for(let i = 1; i <= y + 1; i++){
+            if(y - i < 0 || boardData[x * boardSize + y - i] == 0 || boardData[x * boardSize + y - i] != chessNum){
+                rowStart = y - i + 1;
+                break;
+            }
+        }
+        let rowChessNum = rowEnd - rowStart + 1;
+        if(rowChessNum >= 5){
+            win = true;
+        }
+        if(win)
+            return win;
+        // 验证竖行
+        let columnEnd = 0;
+        for(let i = 1; i <= boardSize - x + 1; i++){
+            if(x + i > boardSize - 1 || boardData[(x + i) * boardSize + y] == 0 || boardData[(x + i) * boardSize + y] != chessNum){
+                columnEnd = x + i - 1;
+                break;
+            }
+        }
+        let columnStart = 0;
+        for(let i = 1; i <= x + 1; i++){
+            if(x - i < 0 || boardData[(x - i) * boardSize + y] == 0 || boardData[(x - i) * boardSize + y] != chessNum){
+                columnStart = x - i + 1;
+                break;
+            }
+        }
+        let columnChessNum = columnEnd - columnStart + 1;
+        if(columnChessNum >= 5){
+            win = true;
+        }
+        if(win)
+            return win;
+        // 验证正斜线 \
+        let diagonalRowEnd = 0;
+        for(let i = 1; i <= boardSize - y + 1; i++){
+            if(x + i > boardSize - 1 || y + i > boardSize - 1 || boardData[(x + i) * boardSize + y + i] == 0 || boardData[(x + i) * boardSize + y + i] != chessNum){
+                diagonalRowEnd = y + i - 1;
+                break;
+            }
+        }
+        let diagonalRowStart = 0;
+        for(let i = 1; i <= y + 1; i++){
+            if(x - i < 0 || y - i < 0 || boardData[(x - i) * boardSize + y - i] == 0 || boardData[(x - i) * boardSize + y - i] != chessNum){
+                diagonalRowStart = y - i + 1;
+                break;
+            }
+        }
+        let diagonalChessNum = diagonalRowEnd - diagonalRowStart + 1;
+        if(diagonalChessNum >= 5){
+            win = true;
+        }
+        if(win)
+            return win;
+        // 验证反斜线 /
+        let antiDiagonalRowEnd = 0;
+        for(let i = 1; i <= boardSize - y + 1; i++){
+            if(x - i < 0 || y + i > boardSize - 1 || boardData[(x - i) * boardSize + y + i] == 0 || boardData[(x - i) * boardSize + y + i] != chessNum){
+                antiDiagonalRowEnd = y + i - 1;
+                break;
+            }
+        }
+        let antiDiagonalRowStart = 0;
+        for(let i = 1; i <= y + 1; i++){
+            if(x + i > boardSize - 1 || y - i < 0 || boardData[(x + i) * boardSize + y - i] == 0 || boardData[(x + i) * boardSize + y - i] != chessNum){
+                antiDiagonalRowStart = y - i + 1;
+                break;
+            }
+        }
+        let antiDiagonalChessNum = antiDiagonalRowEnd - antiDiagonalRowStart + 1;
+        if(antiDiagonalChessNum >= 5){
+            win = true;
+        }
+        if(win)
+            return win;
+        return win;
+    }
+    function cloneData(boardData){
+        return Object.create(boardData);
+        // return JSON.parse(JSON.stringify(boardData)); //影响性能
+    }
+    function preCheck(boardData, chessNum){
+        for(let i = 0; i < boardSize; i++){
+            for(let j = 0; j < boardSize; j++){
+                if(boardData[i * boardSize + j])
+                    continue
+                let dataClone = cloneData(boardData);
+                dataClone[i * boardSize + j] = chessNum;
+                if(check(dataClone, i, j, chessNum)){
+                    document.getElementById("board").childNodes[i].childNodes[j].classList.add("tips")
+                    return [i, j];
+                }
+            }
+        }
+        return null;
+    }
+    function bestChoice(boardData, chessNum){
+        let p = preCheck(boardData, chessNum);
+        if(p){
+            return {
+                point : p,
+                result : 1
+            }
+        }
+        let result = -2;
+        let point = null;
+        outer:for(let i = 0; i < boardSize; i++){
+            for(let j = 0; j < boardSize; j++){
+                if(boardData[i * boardSize + j])
+                    continue
+                let dataClone = cloneData(boardData);
+                dataClone[i * boardSize + j] = chessNum;
+                let othResult = bestChoice(dataClone, 3 - chessNum).result;
+                if(-othResult >= result){
+                    result = -othResult;
+                    point = [i, j]
+                }
+                if(result == 1){
+                    break outer;
+                }
+            }
+        }
+        return {
+            point : point,
+            result : point ? result : 0
+        }
+    }
+    paintBoard();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tic Tok Toe</title>
+    <style type="text/css">
+        #board{
+            width:126px;
+            height:126px;
+            display:flex;
+            flex-wrap:wrap;
+        }
+        .column{
+            display:flex;
+        }
+        .cell{
+            flex:1;
+            border:solid 1px white;
+            background:lightblue;
+            width:40px;
+            height:40px;
+            line-height:40px;
+            text-align:center;
+            font-size:20px;
+            color:red;
+            font-weight:bold;
+        }
+        .tips{
+            border-color:red;
+        }
+    </style>
+</head>
+<body>
+<div id="board"></div>
+<script>
+    const pattern = [
+        0, 0, 0,
+        0, 0, 0,
+        0, 0, 0
+    ]
+    let cellCon = 1;
+    function show(){
+        let board = document.getElementById("board");
+        for(let i = 0; i < 3; i++){
+            let columnNode = document.createElement("div");
+            columnNode.classList.add("column");
+            for(let j = 0; j < 3; j++){
+                let cellNode = document.createElement("div");
+                cellNode.classList.add("cell");
+                let cellVal = pattern[i * 3 + j];
+                cellNode.innerText = cellVal == 2 ? "X" :
+                    cellVal == 1 ? "O" : "";
+                cellNode.addEventListener("click", (e) => userMove(e, i, j))
+                columnNode.appendChild(cellNode);
+            }
+            board.append(columnNode);
+        }
+    }
+    function userMove(e, x, y){
+        let ele = e.target;
+        let oldVal = pattern[x * 3 + y];
+        if(oldVal != 0)
+            return ;
+        let newVal = cellCon;
+        pattern[x * 3 + y] = newVal;
+        cellCon = 3 - cellCon;
+        ele.innerText = pattern[x * 3 + y] == 2 ? "X" :
+            pattern[x * 3 + y] == 1 ? "O" : "";
+        // 判定输赢
+        if(check(pattern, x, y, newVal)){
+            console.log(newVal == 1 ? "O is winner!" : "X is winner!");
+        }
+        // 预估结局
+        console.log(bestChoice(pattern, cellCon));
+        // 预判输赢
+        if(preCheck(pattern, cellCon)){
+            console.log(cellCon == 1 ? "O will win!" : "X will win!");
+        }
+        computerMove();
+    }
+    function computerMove(){
+        let choice = bestChoice(pattern, cellCon);
+        if(choice.point){
+            pattern[choice.point[0] * 3 + choice.point[1]] = cellCon;
+            document.getElementById("board").childNodes[choice.point[0]].childNodes[choice.point[1]].innerText = cellCon == 2 ? "X" :
+                cellCon ? "O" : "";
+            if(check(pattern, choice.point[0], choice.point[1], cellCon)){
+                console.log(cellCon == 1 ? "O is winner!" : "X is winner!")
+            }
+            cellCon = 3 - cellCon;
+        }
+    }
+    function check(pattern, x, y, cellCon){
+        // 验证横行
+        let win = true;
+        for(let i = 0; i < 3; i++){
+            if(pattern[x * 3 + i] != cellCon)
+                win = false;
+        }
+        if(win)
+            return win;
+        // 验证竖行
+        win = true;
+        for(let j = 0; j < 3; j++){
+            if(pattern[j * 3 + y] != cellCon)
+                win = false;
+        }
+        if(win)
+            return win;
+        // 验证正斜线 \
+        if(y == x){
+            win = true;
+            for(let k = 0; k < 3; k++){
+                if(pattern[k * 3 + k] != cellCon)
+                    win = false;
+            }
+            if(win)
+                return win;
+        }
+        // 验证反斜线 /
+        if(y + x == 2){
+            win = true;
+            for(let m = 0; m < 3; m++){
+                if(pattern[m * 3 + 2 - m] != cellCon)
+                    win = false;
+            }
+            if(win)
+                return win;
+        }
+        return win;
+    }
+    function clonePattern(pattern){
+        return Object.create(pattern);
+        // return JSON.parse(JSON.stringify(pattern));
+    }
+    function preCheck(pattern, cellCon){
+        for(let i = 0; i < 3; i++){
+            for(let j = 0; j < 3; j++){
+                if(pattern[i * 3 + j])
+                    continue
+                let patternClone = clonePattern(pattern);
+                patternClone[i * 3 + j] = cellCon;
+                if(check(patternClone, i, j, cellCon)){
+                    // document.getElementById("board").childNodes[i].childNodes[j].classList.add("tips");
+                    return [i, j];
+                }
+            }
+        }
+        return null;
+    }
+    function bestChoice(pattern, cellCon){
+        let p = preCheck(pattern, cellCon);
+        if(p){
+            return {
+                point : p,
+                result : 1
+            }
+        }
+        let result = -2;
+        let point = null;
+        outer:for(let i = 0; i < 3; i++){
+            for(let j = 0; j < 3; j++){
+                if(pattern[i * 3 + j])
+                    continue
+                let patternClone = clonePattern(pattern);
+                patternClone[i * 3 + j] = cellCon;
+                let othResult = bestChoice(patternClone, 3 - cellCon).result;
+                if(-othResult >= result){
+                    result = -othResult;
+                    point = [i, j]
+                }
+                if(result == 1){
+                    break outer;
+                }
+                // if(othResult == 1){
+                //     point = [i, j];
+                //     result = -1;
+                //     return {
+                //         point : point,
+                //         result : result
+                //     }
+                // }else{
+                //     result = -othResult;
+                //     point = [i, j]
+                // }
+            }
+        }
+        return {
+            point : point,
+            result : point ? result : 0
+        }
+    }
+    show();
+</script>
+</body>
+</html>

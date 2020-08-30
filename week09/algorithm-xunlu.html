@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>寻路算法</title>
+    <style type="text/css">
+        .button_part{
+            height:40px;
+        }
+        .button_part button{
+            border:solid 1px grey;
+            border-radius:4px;
+            margin-right:20px;
+            background:none;
+        }
+        #map{
+            width:700px;
+            display:flex;
+            flex-wrap:wrap;
+        }
+        .column{
+            display:flex;
+        }
+        .item{
+            flex:1;
+            background:lightblue;
+            width:6px;
+            height:6px;
+            border-right:solid 1px white;
+            border-bottom:solid 1px white
+        }
+        .item.black{
+            background:black;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div class="button_part">
+        <button type="button" id="save">保存墙信息</button>
+        <button type="button" id="findPathBtn">开始寻路</button>
+    </div>
+    <div id="map"></div>
+</div>
+<script>
+    class Sorted{
+        constructor(data, compare) {
+            this.data = data.slice();
+            this.compare = compare || ((a, b) => a - b);
+        }
+        take(){
+            if(!this.data.length)
+                return;
+            let min = this.data[0];
+            let minIndex = 0;
+            for(let i = 0; i < this.data.length; i++){
+                if(this.compare(this.data[i], min) < 0){
+                    min = this.data[i];
+                    minIndex = i;
+                }
+            }
+            this.data[minIndex] = this.data[this.data.length - 1];
+            this.data.pop();
+            return min;
+        }
+        give(v){
+            this.data.push(v);
+        }
+    }
+    class Map{
+        constructor() {
+            this.mapData = localStorage["mapData"] ? JSON.parse(localStorage["mapData"]) : new Array(10000).fill(0);
+            this.queue = null;
+            this.end = [];
+        }
+        initMap(){
+            let beginDraw = false;
+            let clear = false;
+            const mapPart = document.getElementById("map");
+            for(let i = 0; i < 100; i++){
+                const column = document.createElement("div");
+                column.classList.add("column");
+                for(let j = 0; j < 100; j++){
+                    const item = document.createElement("div");
+                    item.classList.add("item");
+                    if(this.mapData[100 * i + j] == 1){
+                        item.classList.add("black");
+                    }
+                    item.addEventListener("mousemove", () => {
+                        if(beginDraw){
+                            if(clear){
+                                item.classList.remove("black");
+                                this.mapData[100 * i + j] = 0;
+                            }else{
+                                item.classList.add("black");
+                                this.mapData[100 * i + j] = 1;
+                            }
+                        }
+
+                    })
+                    column.appendChild(item);
+                }
+                mapPart.appendChild(column);
+            }
+            document.addEventListener("mousedown", (e) => {
+                beginDraw = true;
+                clear = (e.button == 3);
+            })
+            document.addEventListener("mouseup", () => {
+                beginDraw = false;
+            })
+            document.addEventListener("contextmenu", e => e.preventDefault());
+            document.getElementById("save").addEventListener("click", () => {
+                localStorage["mapData"] = JSON.stringify(this.mapData);
+                console.log("saved");
+            })
+            document.getElementById("findPathBtn").addEventListener("click", () => {
+                this.findPath([0, 0], [30, 30]);
+            })
+        }
+        sleep(ms){
+            return new Promise((resolve, reject) => {
+                setTimeout(resolve, ms)
+            })
+        }
+        async findPath(start, end){
+            this.end = end;
+            this.queue = new Sorted([start], (pointA, pointB) => this.distance(pointA) - this.distance(pointB));
+            let path = [];
+            while(this.queue.data.length){
+                let [x, y] = this.queue.take();
+                path.push([x, y]);
+                if(x === end[0] && y === end[0]){
+                    document.getElementById("map").children[x].children[y].style.backgroundColor = "red";
+                    for(let i = 0; i < path.length; i++){
+                        document.getElementById("map").children[path[i][0]].children[path[i][1]].style.backgroundColor = "red";
+                    }
+                    return true;
+                }
+                await this.insert(x - 1, y);
+                await this.insert(x, y - 1);
+                await this.insert(x - 1, y - 1);
+                await this.insert(x + 1, y - 1);
+                await this.insert(x + 1, y);
+                await this.insert(x, y + 1);
+                await this.insert(x - 1, y + 1);
+                await this.insert(x + 1, y + 1);
+            }
+        }
+        distance(point){
+            return (point[0] - this.end[0]) ** 2 + (point[1] - this.end[1]) ** 2;
+        }
+        async insert(x, y){
+            if(x < 0 || y < 0 || x >= 100 || y >= 100){
+                return;
+            }
+            if(this.mapData[x * 100 + y]){
+                return;
+            }
+            await this.sleep(100);
+            document.getElementById("map").children[x].children[y].style.backgroundColor = "lightGreen";
+            this.mapData[x * 100 + y] = 2;
+            this.queue.give([x, y]);
+        }
+    }
+
+    const map = new Map();
+    map.initMap();
+
+</script>
+</body>
+</html>
