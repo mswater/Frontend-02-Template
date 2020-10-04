@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test gesture</title>
+</head>
+<body>
+
+<script type="module">
+    import {enableGesture} from "./gesture-module.js";
+    new enableGesture(document.documentElement);
+    document.documentElement.addEventListener("tap", (event) => {
+        console.log("tap", event)
+    })
+    document.documentElement.addEventListener("press", (event) => {
+        console.log("press", event)
+    })
+    document.documentElement.addEventListener("pan", (event) => {
+        console.log("pan", event)
+    })
+    document.documentElement.addEventListener("flip", (event) => {
+        console.log("flip", event)
+    })
+</script>
+</body>
+</html>
